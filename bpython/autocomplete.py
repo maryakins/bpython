@@ -30,8 +30,6 @@ import re
 import os
 from glob import glob
 
-import jedi
-
 from bpython import inspection
 from bpython import importcompletion
 from bpython._py3compat import py3
@@ -326,41 +324,49 @@ class StringLiteralAttrCompletion(BaseCompletionType):
             return [match for match in matches if not match.startswith('_')]
         return matches
 
-class JediCompleter(BaseCompletionType):
-    @classmethod
-    def matches(cls, cursor_offset, line, history, **kwargs):
-        if not lineparts.current_word(cursor_offset, line):
-            return None
-        history = '\n'.join(history) + '\n' + line
-        script = jedi.Script(history, len(history.splitlines()), cursor_offset, 'fake.py')
-        completions = script.completions()
-        if not completions:
-            cls.locate = None
-            return []
-
+try:
+    import jedi
+except ImportError:
+    class MultilineJediCompleter(BaseCompletionType):
         @classmethod
-        def locate_original(cls, cursor_offset, line):
-            start = cursor_offset - (len(completions[0].name) - len(completions[0].complete))
-            end = cursor_offset
-            return start, end, line[start:end]
-
-        cls.locate = locate_original
-
-        matches = [c.name for c in completions]
-        if all(m.startswith('_') for m in matches):
-            return matches
-        elif any(not m.startswith(matches[0][0]) for m in matches):
+        def matches(cls, cursor_offset, line, **kwargs):
             return None
-        else:
-            return [m for m in matches if not m.startswith('_')]
+else:
+    class JediCompleter(BaseCompletionType):
+        @classmethod
+        def matches(cls, cursor_offset, line, history, **kwargs):
+            if not lineparts.current_word(cursor_offset, line):
+                return None
+            history = '\n'.join(history) + '\n' + line
+            script = jedi.Script(history, len(history.splitlines()), cursor_offset, 'fake.py')
+            completions = script.completions()
+            if not completions:
+                cls.locate = None
+                return []
 
-class MultilineJediCompleter(JediCompleter):
-    @classmethod
-    def matches(cls, cursor_offset, line, current_block, history, **kwargs):
-        if '\n' in current_block:
-            return JediCompleter.matches(cursor_offset, line, history)
-        else:
-            return None
+            @classmethod
+            def locate_original(cls, cursor_offset, line):
+                start = cursor_offset - (len(completions[0].name) - len(completions[0].complete))
+                end = cursor_offset
+                return start, end, line[start:end]
+
+            cls.locate = locate_original
+
+            matches = [c.name for c in completions]
+            if all(m.startswith('_') for m in matches):
+                return matches
+            elif any(not m.startswith(matches[0][0]) for m in matches):
+                return None
+            else:
+                return [m for m in matches if not m.startswith('_')]
+
+    class MultilineJediCompleter(JediCompleter):
+        @classmethod
+        def matches(cls, cursor_offset, line, current_block, history, **kwargs):
+            if '\n' in current_block:
+                return JediCompleter.matches(cursor_offset, line, history)
+            else:
+                return None
 
 class EvaluationError(Exception):
     """Raised if an exception occurred in safe_eval."""

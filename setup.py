@@ -155,6 +155,7 @@ if sys.version_info[:2] >= (2, 6):
     # curtsies only supports 2.6 and onwards
     extras_require['curtsies'] = ['curtsies >=0.1.15, <0.2.0', 'greenlet']
     extras_require['watch'] = ['watchdog']
+    extras_require['jedi'] = ['jedi']
     packages.append("bpython.curtsiesfrontend")
     entry_points['console_scripts'].append(
         'bpython-curtsies = bpython.curtsies:main [curtsies]')
