@@ -607,7 +607,7 @@ class Repl(BpythonRepl):
             self.cut_buffer = cut
 
     def on_enter(self, insert_into_history=True):
-        self.cursor_offset = -1 # so the cursor isn't touching a paren
+        self._set_cursor_offset(-1, update_completion=False) # so the cursor isn't touching a paren
         self.unhighlight_paren()        # in unhighlight_paren
         self.highlighted_paren = None
 
@@ -860,7 +860,7 @@ class Repl(BpythonRepl):
                 self.display_lines.extend(paint.display_linize(self.current_stdouterr_line, self.width))
                 self.current_stdouterr_line = ''
 
-            self.current_line = ' '*indent
+            self._set_current_line(' '*indent, update_completion=False)
             self.cursor_offset = len(self.current_line)
 
     def keyboard_interrupt(self):
